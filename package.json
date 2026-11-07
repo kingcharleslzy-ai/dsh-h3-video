@@ -1,0 +1,44 @@
+{
+  "name": "dsh-h3-video",
+  "version": "0.3.0",
+  "description": "MiniMax H3 video studio and agent skill for DeepSeek Harness",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "worker.py",
+    "cordis.patch.yml",
+    "README.md",
+    "client.js",
+    "studio.js",
+    "skills/",
+    "workflows/",
+    "connection.js"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-layout"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=22",
+    "dsh": "0.2.2-rc.1"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kingcharleslzy-ai/dsh-h3-video.git"
+  }
+}

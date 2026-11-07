@@ -1,0 +1,4 @@
+- insert:
+    - id: h3-video
+      name: dsh-h3-video
+      config: {}
