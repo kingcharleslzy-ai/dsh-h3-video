@@ -1,10 +1,11 @@
+import {imageType,limit} from './references.js';
 import { createReadStream } from 'node:fs';
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 
 export function registerStudio(ctx, { videos, uuid, submitVideo, collect, release }) {
-  for (const route of ['gallery','video','generate','status','release']) {
+  for (const route of ['gallery','video','generate','status','release','reference']) {
     ctx.effect(() => ctx.webServer.register({
       kind: 'exact', path: '/api/h3-video/' + route,
       async handler(req, res) {
@@ -36,6 +37,16 @@ export function registerStudio(ctx, { videos, uuid, submitVideo, collect, releas
               'content-length':end-start+1,...(range ? {'content-range':`bytes ${start}-${end}/${size}`} : {})});
             await pipeline(createReadStream(path,{start,end}),res);
             return;
+          }
+          if(route === 'reference' && req.method === 'POST') {
+            if(req.headers['sec-fetch-site']==='cross-site') return json(403,{error:'来源无效'});
+            if(!['image/jpeg','image/png','image/webp'].includes(req.headers['content-type'])) return json(415,{error:'需要 JPEG、PNG 或 WebP'});
+            const chunks = []; let size = 0;
+            for await (const chunk of req) { size += chunk.length; if(size>limit) return json(413,{error:'图片超过 16 MiB'}); chunks.push(chunk); }
+            const data = Buffer.concat(chunks);
+            const mediaType = 'image/'+imageType(data);
+            const attachment = await ctx.attachments.saveImage({data,mediaType,name:'reference.'+mediaType.slice(6)});
+            return json(200,{id:attachment.attachmentId});
           }
           if(req.method !== 'POST' || !['generate','status','release'].includes(route)) return json(405,{error:'请求方法无效'});
           if(req.headers['content-type']?.split(';')[0] !== 'application/json') return json(415,{error:'需要 JSON 请求'});

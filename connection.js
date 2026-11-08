@@ -26,5 +26,5 @@ export async function connection() {
   const command = 'cmd.exe /d /s /c ""' + win32.normalize(python) + '" -X utf8 -"';
   const argv = ['-T', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', '-o',
     'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3', sshHost, command];
-  return { cmd: 'ssh', argv, worker };
+  return { cmd: 'ssh', sshHost, argv, worker };
 }

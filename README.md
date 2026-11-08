@@ -42,3 +42,9 @@
 - worker.outputDir 可指定 ComfyUI 实际输出根目录；插件使用其中的 dsh-h3-video 子目录。worker.stateDir 可指定持久任务目录（默认 studioDir/user/dsh-h3-video）。迁移已有安装时填写原任务目录和输出根目录，以便继续取回旧任务。
 - 可选 worker.startupTask 指定本机预先创建的 Windows 计划任务名，用于冷启动；省略时先手动启动 ComfyUI。worker.alternatePort 可指定同工作台的备用监听端口。worker.orchestratorPort 可指定独占 GPU 的外部调度器监听端口。
 - 同卡运行 Qwen 网关时可配置 worker.qwenConfig（GPU 机器上的配置文件）、worker.qwenPort 和可选 worker.qwenWorkerPort。只在 GPU 机器内访问网关密钥。
+
+### 人物参考图
+
+视频页可选择 1–9 张 JPEG、PNG 或 WebP，在描述中按顺序用 `<Picture 1>` 等指代人物或物体。对话工具的 `reference_images` 接受 DSH 图片附件 ID。带图默认 480p 质量档，也支持 768p 质量档。服务端需安装 MiniMax H3 Ref2VA 权重；回执记录模式和图片 ID。图片仅发送到当前配置的 ComfyUI。人物和衣着的一致性请逐镜审看。
+
+参考图 API 图来自 [Comfy-Org 官方模板](https://github.com/Comfy-Org/workflow_templates/blob/main/templates/video_minimax_h3_r2v.json)，使用质量分支、20 步 Euler 和动态图片槽位。上传复用 [dsh-comfyui v0.5.5](https://github.com/fandc520/dsh-comfyui) 的 MIT 客户端，许可证随包提供。私有纯文字预设可放在 DSH 数据目录的 `h3-video/workflows/`，文件名和随包同名预设一致；包升级后继续优先读取。参考图使用独立的质量图。

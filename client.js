@@ -27,6 +27,7 @@ window.__ModuleLoader__.load({id:'dsh-h3-video', factory(require) {
   function Page() {
     const [prompt,setPrompt]=useState(''),[preset,setPreset]=useState('turbo480'),[seed,setSeed]=useState('');
     const [duration,setDuration]=useState('5');
+    const [invalidRefs,setInvalidRefs]=useState(false),[refs,setRefs]=useState([]),[uploading,setUploading]=useState(false);
     const seconds=Number(duration);
     const validDuration=Number.isFinite(seconds) && seconds>=1 && seconds<=15;
     const [pending,setPending]=useState(()=>localStorage.getItem(pendingKey)||'');
@@ -58,12 +59,30 @@ window.__ModuleLoader__.load({id:'dsh-h3-video', factory(require) {
       }
       poll();return ()=>{stopped=true;clearTimeout(timer);};
     },[pending,sending]);
+    async function loadRefs(files){
+      setInvalidRefs(false);
+      if(!files.length){setRefs([]);return;}
+      setUploading(true);setError('');
+      try{
+        if(files.length>9)throw Error('每镜最多 9 张参考图');
+        const items=[];
+        for(const file of files){
+          if(file.size>16*1024*1024)throw Error('图片超过 16 MiB');
+          const res=await fetch(base+'reference',{method:'POST',headers:{'content-type':file.type},body:file});
+          const value=await res.json();
+          if(!res.ok)throw Error(value.error);
+          if(items.some(item=>item.id===value.id))throw Error('同一张参考图只能选择一次');
+          items.push({name:file.name,id:value.id});
+        }
+        setRefs(items);setPreset(old=>old.replace('turbo','quality'));
+      }catch(e){setInvalidRefs(true);setRefs([]);setError(e.message);}finally{setUploading(false);}
+    }
     async function generate(){
       if(submitLock.current || pending || !prompt.trim() || !validDuration)return;
       if(seed!=='' && (!Number.isInteger(Number(seed)) || Number(seed)<0 || Number(seed)>2147483647)){setError('种子范围为 0–2147483647');return;}
       submitLock.current=true;setSending(true);setError('');setMessage('正在连接 H3…');
       const id=crypto.randomUUID();localStorage.setItem(pendingKey,id);setPending(id);
-      try{await api('generate',{id,prompt,preset,duration_seconds:seconds,...(seed!==''?{seed:Number(seed)}:{})});setMessage('已提交');}
+      try{await api('generate',{id,prompt,preset,reference_images:refs.map(r=>r.id),duration_seconds:seconds,...(seed!==''?{seed:Number(seed)}:{})});setMessage('已提交');}
       catch(e){setError(e.message);setMessage('可按任务 ID 查询提交结果');}
       finally{submitLock.current=false;setSending(false);}
     }
@@ -72,10 +91,14 @@ window.__ModuleLoader__.load({id:'dsh-h3-video', factory(require) {
       h('header',{className:'h3head'},h('div',null,h('h1',null,'视频'),h('span',{className:'h3meta'},'MiniMax H3')),h('button',{onClick:release,disabled:!!pending},'释放显卡')),
       h('div',{className:'h3grid'},h('section',{className:'h3form'},
         h('label',null,'画面与声音',h('textarea',{value:prompt,maxLength:12000,onChange:e=>setPrompt(e.target.value),placeholder:'描述主体、动作、镜头和环境声…'})),
-        h('div',{className:'h3options'},h('label',null,'生成档位',h('select',{value:preset,onChange:e=>setPreset(e.target.value)},modes.map(([id,label])=>h('option',{key:id,value:id},label)))),
+        h('label',null,'人物 / 参考图（可选，最多 9 张）',h('input',{type:'file',accept:'image/jpeg,image/png,image/webp',multiple:true,disabled:uploading||sending,onChange:e=>loadRefs(Array.from(e.target.files))})),
+        (invalidRefs || refs.length>0) && h('button',{onClick:e=>{e.currentTarget.parentElement.querySelector('input[type=file]').value='';setRefs([]);setInvalidRefs(false);setError('');},disabled:uploading},'清空参考图'),
+        uploading && h('small',null,'正在导入参考图…'),
+        refs.length>0 && h('small',null,refs.map((r,i)=>'<Picture '+(i+1)+'> '+r.name).join(' · ')),
+        h('div',{className:'h3options'},h('label',null,'生成档位',h('select',{value:preset,onChange:e=>setPreset(e.target.value)},modes.filter(([id])=>!refs.length||id.startsWith('quality')).map(([id,label])=>h('option',{key:id,value:id},label)))),
           h('label',null,'随机种子',h('input',{type:'number',min:0,max:2147483647,value:seed,onChange:e=>setSeed(e.target.value),placeholder:'自动'}))),
         h('label',null,'单镜时长（秒）',h('input',{type:'number',min:1,max:15,step:'any',value:duration,onChange:e=>setDuration(e.target.value),'aria-invalid':!validDuration})),
-        h('small',null,validDuration?'24 fps · 帧数按 H3 支持的长度向上对齐':'请输入 1–15 秒'),h('button',{className:'h3go',onClick:generate,disabled:!validDuration||!prompt.trim()||!!pending||sending},pending?'正在处理…':'生成视频'),
+        h('small',null,validDuration?'24 fps · 帧数按 H3 支持的长度向上对齐':'请输入 1–15 秒'),h('button',{className:'h3go',onClick:generate,disabled:uploading||invalidRefs||!validDuration||!prompt.trim()||!!pending||sending},pending?'正在处理…':'生成视频'),
         h('div',{className:'h3msg',role:'status'},message),error && h('div',{className:'h3msg',role:'alert'},error),
         pending && h('small',null,'任务 ',pending),pending && !sending && error && h('button',{onClick:()=>{localStorage.removeItem(pendingKey);setPending('');setMessage('已停止跟踪；原任务可在对话中按 ID 查询。');}},'停止跟踪此任务')),
         h('section',null,h('h2',null,'成片预览'),h('div',{className:'h3screen'},selected?h('video',{key:selected,src:url(selected),controls:true,preload:'metadata'}):h('span',null,'完成后可在这里播放')),

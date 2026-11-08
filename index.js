@@ -7,6 +7,8 @@ import { connection, dataHome } from './connection.js';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import {uploadReferences, validateIds} from './references.js';
+
 export const name = 'h3-video';
 export const inject = ['tools'];
 import { registerStudio } from './studio.js';
@@ -78,7 +80,7 @@ function tool(name, description, properties, required, execute) {
       schema: { type: 'object', properties: {
         status: {type: 'string'}, id: {type: 'string'}, path: {type: 'string'}, message: {type: 'string'},
         duration_seconds: {type:'number'}, frames: {type:'integer'}, actual_seconds: {type:'number'},
-        preset: {type: 'string'}, seed: {type: 'integer'}, bytes: {type: 'integer'}, port: {type: 'integer'}
+        reference_images:{type:'array',items:{type:'string'}}, mode:{type:'string'}, preset: {type: 'string'}, seed: {type: 'integer'}, bytes: {type: 'integer'}, port: {type: 'integer'}
       }, required: ['status'] },
       render: (_args, result) => [{ type: 'text', text: JSON.stringify(result) }],
     },
@@ -86,17 +88,40 @@ function tool(name, description, properties, required, execute) {
   };
 }
 
-async function submitVideo({prompt, preset = 'turbo480', duration_seconds = 5, seed = randomInt(2147483648)}, id, signal) {
+async function submitVideo({prompt, reference_images = [], preset = reference_images?.length ? 'quality480' : 'turbo480', duration_seconds = 5, seed = randomInt(2147483648)}, id, signal) {
   if (!uuid.test(id) || typeof prompt !== 'string' || !prompt.trim() || prompt.length > 12000 ||
       !presets.includes(preset) || !Number.isInteger(seed) || seed < 0 || seed > 2147483647) {
     throw Error('请检查任务 ID、提示词、档位或随机种子。');
   }
   if (!Number.isFinite(duration_seconds) || duration_seconds < 1 || duration_seconds > 15)
     throw Error('每镜可请求 1–15 秒。较长视频请按镜头拆分。');
+  validateIds(reference_images);
+  if (reference_images.length && preset.startsWith('turbo')) throw Error('参考图使用 quality480 或 quality768。');
   const frames = 5 + 17 * Math.ceil((duration_seconds * 24 - 5) / 17);
   const [mode, res] = preset.match(/^(turbo|quality)(480|768)$/).slice(1);
   const filename = 'H3-' + (mode === 'turbo' ? 'Turbo' : 'Quality') + '-' + res + 'p-' + (mode === 'turbo' ? 8 : 20) + 'steps.json';
-  const workflow = JSON.parse(await readFile(new URL('./workflows/' + filename, import.meta.url), 'utf8'));
+
+  if (reference_images.length) {
+    const workflow = JSON.parse(await readFile(new URL('./workflows/H3-Reference-Quality.json',import.meta.url),'utf8'));
+    const ready = await remote({op:'prepare',id},signal);
+    if (ready.existing) return ready.existing;
+    const images = await uploadReferences(reference_images,ready.port,signal);
+    const ref = workflow['136'].inputs;
+    ref.width = res === '480' ? 864 : 1344;
+    ref.height = Number(res);
+    images.forEach((image,index) => {
+      const key = index === 0 ? '137' : String(200+index);
+      workflow[key] = {class_type:'LoadImage',inputs:{image}};
+      ref['ref_images.ref_image_'+index] = [key,0];
+    });
+    return remote({op:'submit',id,port:ready.port,reference_images,prompt:prompt.trim(),preset,seed,duration_seconds,frames,workflow},signal);
+  }
+  const override = join(dataHome,'h3-video','workflows',filename);
+  const raw = await readFile(override,'utf8').catch(err => {
+    if (err.code !== 'ENOENT') throw err;
+    return readFile(new URL('./workflows/'+filename,import.meta.url),'utf8');
+  });
+  const workflow = JSON.parse(raw);
   return remote({ op: 'submit', id, prompt: prompt.trim(), preset, seed, duration_seconds, frames, workflow }, signal);
 }
 
@@ -111,12 +136,12 @@ export function apply(ctx) {
     owner.effect(() => owner.get('skills').register({ ...meta, content: content.trim(), path,
       source: '视频', invocation: { modelInvocable: true, userInvocable: true } }), 'H3 video skill');
   });
-  ctx.inject(['webServer'], owner => registerStudio(owner, {
+  ctx.inject(['webServer','attachments'], owner => registerStudio(owner, {
     videos, uuid, submitVideo, collect, release: () => remote({op:'release'}),
   }));
   ctx.tools.register(tool('h3_generate_video',
     '用 MiniMax H3 生成一个横屏有声镜头。480p Turbo 预览用 turbo480，768p 质量档用 quality768。duration_seconds 指定 1–15 秒，默认 5 秒。按返回的任务 ID 继续查询。',
-    { prompt: {type:'string'}, duration_seconds: {type:'number',description:'单镜请求时长（秒），1–15，默认 5。'}, preset: {type:'string',enum:presets}, seed: {type:'integer', description:'0 到 2147483647，可复现同档位的随机输入。'} },
+    { reference_images:{type:'array',items:{type:'string'},description:'按 <Picture N> 顺序排列的 DSH 图片附件 ID；默认 quality480。'}, prompt: {type:'string'}, duration_seconds: {type:'number',description:'单镜请求时长（秒），1–15，默认 5。'}, preset: {type:'string',enum:presets}, seed: {type:'integer', description:'0 到 2147483647，可复现同档位的随机输入。'} },
     ['prompt'], async (args, exec = {}) => {
       const id = exec.agent?.id && exec.callId ? stableId(exec.agent.id, exec.callId) : randomUUID();
       try {

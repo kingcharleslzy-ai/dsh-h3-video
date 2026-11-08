@@ -109,8 +109,11 @@ def submit(args):
         if len(matches) != 1:
             raise ValueError(f"Unexpected workflow layout for {kind}")
         return matches[0]
-    node("MiniMaxH3ImageToVideo")["prompt"] = args["prompt"]
-    node("MiniMaxH3ImageToVideo")["length"] = state["frames"]
+    refs = args.get("reference_images", [])
+    kind = "MiniMaxH3ReferenceToVideo" if refs else "MiniMaxH3ImageToVideo"
+    state.update(mode="ref2va" if refs else "t2va", reference_images=refs)
+    node(kind)["prompt"] = args["prompt"]
+    node(kind)["length"] = state["frames"]
     node("RandomNoise")["noise_seed"] = state["seed"]
     node("SaveVideo")["filename_prefix"] = f"dsh-h3-video/{job_id}"
     STATE.mkdir(parents=True, exist_ok=True)
@@ -122,6 +125,8 @@ def submit(args):
         if path.exists():
             return json.loads(path.read_text())
         state["port"] = service()
+        if refs and args["port"] != state["port"]:
+            raise ValueError("Workspace changed during reference upload. Retry the same job.")
         save(path, state)
         try:
             result = api(state["port"], "/prompt", {"prompt_id": job_id, "prompt": workflow})
@@ -222,6 +227,9 @@ def main(args):
     PORT = CONFIG.get("port", 8188)
     if args["op"] == "release":
         return release()
+    if args["op"] == "prepare":
+        path = state_path(args["id"])
+        return {"existing": json.loads(path.read_text())} if path.exists() else {"port": service()}
     if args["op"] == "submit":
         return submit(args)
     result = status(args["id"])
