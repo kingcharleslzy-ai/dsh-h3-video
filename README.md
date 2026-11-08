@@ -48,3 +48,12 @@
 视频页可选择 1–9 张 JPEG、PNG 或 WebP，在描述中按顺序用 `<Picture 1>` 等指代人物或物体。对话工具的 `reference_images` 接受 DSH 图片附件 ID。带图默认 480p 质量档，也支持 768p 质量档。服务端需安装 MiniMax H3 Ref2VA 权重；回执记录模式和图片 ID。图片仅发送到当前配置的 ComfyUI。人物和衣着的一致性请逐镜审看。
 
 参考图 API 图来自 [Comfy-Org 官方模板](https://github.com/Comfy-Org/workflow_templates/blob/main/templates/video_minimax_h3_r2v.json)，使用质量分支、20 步 Euler 和动态图片槽位。上传复用 [dsh-comfyui v0.5.5](https://github.com/fandc520/dsh-comfyui) 的 MIT 客户端，许可证随包提供。私有纯文字预设可放在 DSH 数据目录的 `h3-video/workflows/`，文件名和随包同名预设一致；包升级后继续优先读取。参考图使用独立的质量图。
+
+
+### 视频库和对话播放
+
+左栏「视频」提供「视频库 / 创作」。已取回本机的 H3 单镜与长片母版自动入库，可搜索、命名、收藏、归档及移入回收站。隐私模式默认打开：主页显示收藏，未收藏的作品在「隐私视频库」。关闭隐私模式可以浏览全部普通作品。以上分类只修改本地标记。封面可通过本机 FFmpeg 生成。
+
+对话生成或取回单镜后，把工具回执的 `playback_markdown` 原样贴入回复即可原位播放。视频库和对话共用本地媒体接口，支持拖动进度、全屏和下载。桌面兼容播放按需读取本机文件。
+
+桌面播放器复用本地缓存的 WebM（VP9/Opus）兼容预览。已有对话通过 DSH 的文件交付卡提供 MP4 时，点击「在对话中播放」会通过该会话的文件读取权限导入视频。本地文件也可在视频库选择「导入 MP4」。原片用于下载；播放器与封面缓存保存在本机。对话链接播放器参考 dsh-comfyui 的 MIT inline-media 实现。

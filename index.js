@@ -69,7 +69,7 @@ async function collect(id, signal, waitMs) {
     } finally { await rm(tmp, { force: true }); }
   }
   const { file, sha256, ...receipt } = result;
-  return { ...receipt, path };
+  return { ...receipt, path, playback_markdown: '[播放视频](/api/h3-video/video?id='+id+')' };
 }
 
 function tool(name, description, properties, required, execute) {
@@ -78,10 +78,11 @@ function tool(name, description, properties, required, execute) {
     timeoutMs: 300000,
     output: {
       schema: { type: 'object', properties: {
-        status: {type: 'string'}, id: {type: 'string'}, path: {type: 'string'}, message: {type: 'string'},
+        playback_markdown:{type:'string'}, status: {type: 'string'}, id: {type: 'string'}, path: {type: 'string'}, message: {type: 'string'},
         duration_seconds: {type:'number'}, frames: {type:'integer'}, actual_seconds: {type:'number'},
         reference_images:{type:'array',items:{type:'string'}}, mode:{type:'string'}, preset: {type: 'string'}, seed: {type: 'integer'}, bytes: {type: 'integer'}, port: {type: 'integer'}
       }, required: ['status'] },
+      presentationMeta: (_args,result) => ({status:result.status,id:result.id || '',message:result.message || ''}),
       render: (_args, result) => [{ type: 'text', text: JSON.stringify(result) }],
     },
     execute,
@@ -140,7 +141,7 @@ export function apply(ctx) {
     videos, uuid, submitVideo, collect, release: () => remote({op:'release'}),
   }));
   ctx.tools.register(tool('h3_generate_video',
-    '用 MiniMax H3 生成一个横屏有声镜头。480p Turbo 预览用 turbo480，768p 质量档用 quality768。duration_seconds 指定 1–15 秒，默认 5 秒。按返回的任务 ID 继续查询。',
+    '用 MiniMax H3 生成一个横屏有声镜头。480p Turbo 预览用 turbo480，768p 质量档用 quality768。duration_seconds 指定 1–15 秒，默认 5 秒。按返回的任务 ID 继续查询，完成后将 playback_markdown 原样写入最终回复。',
     { reference_images:{type:'array',items:{type:'string'},description:'按 <Picture N> 顺序排列的 DSH 图片附件 ID；默认 quality480。'}, prompt: {type:'string'}, duration_seconds: {type:'number',description:'单镜请求时长（秒），1–15，默认 5。'}, preset: {type:'string',enum:presets}, seed: {type:'integer', description:'0 到 2147483647，可复现同档位的随机输入。'} },
     ['prompt'], async (args, exec = {}) => {
       const id = exec.agent?.id && exec.callId ? stableId(exec.agent.id, exec.callId) : randomUUID();

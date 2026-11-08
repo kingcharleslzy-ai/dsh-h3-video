@@ -15,9 +15,9 @@ whenToUse: 用户提到 H3 生视频、480p Turbo 预览、768p 质量档、指�
 | 480p 质量档 | quality480 |
 | 768p 质量档、768p 高质量 | quality768 |
 
-例如「用 480p Turbo 预览，拍 8 秒雨打窗户」传 `preset="turbo480", duration_seconds=8`。「换成 768p 质量档，同样时长」沿用原提示词和 8 秒，传 `preset="quality768"`。需要复用随机输入时带回上一镜的 seed。未指定档位和时长时使用 480p Turbo、5 秒。
+例如「用 480p Turbo 预览，拍 8 秒雨打窗户」传 `preset="turbo480", duration_seconds=8`。「换成 768p 质量档，同样时长」沿用原提示词和 8 秒，传 `preset="quality768"`。需要复用随机输入时带回上一镜的 seed。未指定档位和时长时，纯文字使用 480p Turbo、5 秒，带参考图使用 480p 质量档、5 秒。
 
-把主体、动作、镜头和现场声音写入 prompt。每镜可请求 1–15 秒（1–4 秒属于较短实验范围），24 fps，帧数向上对齐至 17k+5。回传实际帧数及实际画面时长。queued 或 running 时使用同一 ID 调 h3_video_status，完成后返回可播放的本地 MP4。unknown 时核实该任务。队列完成且需要释放显卡时调用 h3_release_gpu。
+把主体、动作、镜头和现场声音写入 prompt。每镜可请求 1–15 秒（1–4 秒属于较短实验范围），24 fps，帧数向上对齐至 17k+5。回传实际帧数及实际画面时长。queued 或 running 时使用同一 ID 调 h3_video_status，完成后把回执中的 playback_markdown 原样贴在最终回复的独立行，让 DSH 会话显示原位播放器。保留相对路径和任务 ID，本地文件路径可另附。unknown 时核实该任务。队列完成且需要释放显卡时调用 h3_release_gpu。
 
 ## 几分钟的成片
 
