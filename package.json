@@ -1,6 +1,6 @@
 {
   "name": "dsh-h3-video",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "MiniMax H3 video studio and agent skill for DeepSeek Harness",
   "type": "module",
   "main": "index.js",
@@ -33,7 +33,7 @@
   },
   "engines": {
     "node": ">=22",
-    "dsh": "0.2.2-rc.1"
+    "dsh": ">=0.2.2-rc.1"
   },
   "exports": {
     ".": "./index.js",
