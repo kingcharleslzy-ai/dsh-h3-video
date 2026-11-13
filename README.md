@@ -1,6 +1,6 @@
-# H3 视频工作台已并入 Qwen Studio
+# H3 视频工作台已并入 DSH-Spicy
 
-从 3.0.0 开始，新安装和更新请使用 [创作工作室](https://github.com/kingcharleslzy-ai/dsh-qwen-studio)。图像、H3 视频、角色库、长片剪辑和部署技能随同一个插件安装。旧版任务、视频和连接继续使用原目录。已有独立插件请按 [升级步骤](https://github.com/kingcharleslzy-ai/dsh-qwen-studio/blob/main/AGENTS.md#旧插件迁移与回退) 操作。
+从 3.0.0 开始，新安装和更新请使用 [DSH-Spicy](https://github.com/kingcharleslzy-ai/dsh-qwen-studio)。图像、H3 视频、角色库、长片剪辑和部署技能随同一个插件安装。旧版任务、视频和连接继续使用原目录。已有独立插件请按 [升级步骤](https://github.com/kingcharleslzy-ai/dsh-qwen-studio/blob/main/AGENTS.md#旧插件迁移与回退) 操作。
 
 以下是独立版的历史使用说明。
 
