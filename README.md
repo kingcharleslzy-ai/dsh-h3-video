@@ -1,3 +1,9 @@
+# H3 视频工作台已并入 Qwen Studio
+
+从 3.0.0 开始，新安装和更新请使用 [创作工作室](https://github.com/kingcharleslzy-ai/dsh-qwen-studio)。图像、H3 视频、角色库、长片剪辑和部署技能随同一个插件安装。旧版任务、视频和连接继续使用原目录。已有独立插件请按 [升级步骤](https://github.com/kingcharleslzy-ai/dsh-qwen-studio/blob/main/AGENTS.md#旧插件迁移与回退) 操作。
+
+以下是独立版的历史使用说明。
+
 # MiniMax H3 视频工作台
 
 在 DeepSeek Harness 左侧「视频」页面或对话中，用自己的 Windows GPU 工作台生成横屏有声 MP4。内含四套 ComfyUI API 工作流、DSH 技能 `h3-video` 和取片工具。已对接 DSH Desktop 0.2.2-rc.1。
